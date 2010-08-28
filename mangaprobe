@@ -1,0 +1,50 @@
+#!/bin/sh
+
+file=$HOME/projects/mangaprobe/mangalist
+if [ ! -r $file ]; then
+    echo "create $file thx"
+    exit
+fi
+
+function convert_name {
+    echo $1|awk '{print tolower($0)}'|perl -pe 's| |_|'
+}
+
+function search {
+    t=`convert_name "$1"`
+
+    $site="http://mangable.com/$t/"
+}
+
+for f in $*; do
+    if [ "$f" = "-s" ]; then
+        search "$2"
+        exit
+    fi
+done
+
+for i in `cat $file`; do
+    t=`echo $i | egrep "http://.*:\".+\""`
+
+    if [ -n "$t" ]; then
+        continue
+    else
+        domain=`echo $i | sed "s'http://\(.*\)\..*'\1'"`
+
+        raw=`curl -s "$i" | head -n 100`
+
+        if [ "$domain" = "mangable" ]; then
+
+            name=`perl -e 'if($ARGV[0] =~ m|<title>(.*?) Manga</title>|){ print "$1" }' "$raw"`
+            latest=`perl -e 'if($ARGV[0] =~ m|(<a href="http://.*/" title=".*">)|){ print "$1" }' "$raw"`
+            link=`perl -e 'if($ARGV[0] =~ m|<a href="(.*)" title=".*">|){ print "$1" }' "$latest"`
+            chapter=`perl -e 'if($ARGV[0] =~ m|<a href=".*" title="(.*)">|){ print "$1" }' "$latest"`
+            date=`perl -e 'if($ARGV[0] =~ m|<span>(.{3}) (\d{2}), (\d{4})</span>|){ print "$1 $2 $3" }' "$raw"`
+        fi
+
+        echo "Chapter: $chapter"
+        echo "Domain: $domain"
+        echo "Link: $link"
+        echo "Date: $date"
+    fi
+done
