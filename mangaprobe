@@ -1,63 +1,73 @@
-#!/bin/sh
+#!/usr/bin/perl
 
-file=$HOME/projects/mangaprobe/mangalist
-if [ ! -r $file ]; then
-    echo "create $file thx"
-    exit
-fi
+use LWP::Simple;
 
-function convert_name {
-    echo $1|awk '{print tolower($0)}'|perl -pe 's| |_|'
+@lookup = (
+    "http://mangable.com/one_piece",
+    "http://mangable.com/naruto",
+    "http://mangable.com/beelzebub",
+    "http://mangable.com/hajime_no_ippo",
+);
+
+#%my_mangas = get_info($search);
+#print_info(\%my_mangas);
+
+foreach $manga (@lookup) {
+    %info = get_info($manga);
+    print_info(\%info);
+    print "\n";
 }
 
-get_mangable() {
-    t=`convert_name "$1"`
+sub get_info {
+    $url = $_[0];
 
-    site="http://mangable.com/$t/"
-    domain=`echo $site | sed "s'http://\(.*\)\..*'\1'"`
+    $url =~ m/http:\/\/([^.]*)/;
+    $domain = $1;
 
-    raw=`curl -s "$site" | head -n 100`
-
-    name=`perl -e 'if($ARGV[0] =~ m|<title>(.*?) Manga</title>|){ print "$1" }' "$raw"`
-    latest=`perl -e 'if($ARGV[0] =~ m|(<a href="http://.*/" title=".*">)|){ print "$1" }' "$raw"`
-    link=`perl -e 'if($ARGV[0] =~ m|<a href="(.*)" title=".*">|){ print "$1" }' "$latest"`
-    chapter=`perl -e 'if($ARGV[0] =~ m|<a href=".*" title="(.*)">|){ print "$1" }' "$latest"`
-    date=`perl -e 'if($ARGV[0] =~ m|<span>(.{3}) (\d{2}), (\d{4})</span>|){ print "$1 $2 $3" }' "$raw"`
+    if($domain == "mangable") {
+        $site = LWP::Simple::get $url;
+        return get_mangable_info($url, $site);
+    }
 }
 
-function search {
-    get_mangable "$1"
+sub get_mangable_info {
+    $url = $_[0];
+    $site = $_[1];
+
+    $manga{"site"} = $site;
+
+    if( $site =~ m/<title>(.*?) Manga<\/title>/ ) {
+        $manga{"manga"} = $1;
+    }
+
+    if( $site =~ m/
+            <div\s*id="title">.*?<\/div>
+            .*?
+            <ul\s*id="list_entry_chapter">
+                (.*?)
+            <\/ul>
+        /xs
+    ) {
+        $chapters = $1;
+        $manga{"chapters"} = $chapters;
+    }
+
+    if( $chapters =~ m/<a href="(http:\/\/.*?)" title="(.*?)">/ ) {
+        $manga{"link"} = $1;
+        $manga{"chapter"} = $2;
+    }
+
+    if( $chapters =~ m/<span>(.{3}) (\d{2}), (\d{4})<\/span>/ ) {
+        $manga{"date"} = "$1 $2 $3";
+    }
+
+    return %manga;
 }
 
-for f in $*; do
-    if [ "$f" = "-s" ]; then
-        search "$2"
-        exit
-    fi
-done
+sub print_info {
+    print "manga:   $_[0]{manga}\n";
+    print "link:    $_[0]{link}\n";
+    print "chapter: $_[0]{chapter}\n";
+    print "date:    $_[0]{date}\n";
+}
 
-for i in `cat $file`; do
-    t=`echo $i | egrep "http://.*:\".+\""`
-
-    if [ -n "$t" ]; then
-        continue
-    else
-        domain=`echo $i | sed "s'http://\(.*\)\..*'\1'"`
-
-        raw=`curl -s "$i" | head -n 100`
-
-        if [ "$domain" = "mangable" ]; then
-
-            name=`perl -e 'if($ARGV[0] =~ m|<title>(.*?) Manga</title>|){ print "$1" }' "$raw"`
-            latest=`perl -e 'if($ARGV[0] =~ m|(<a href="http://.*/" title=".*">)|){ print "$1" }' "$raw"`
-            link=`perl -e 'if($ARGV[0] =~ m|<a href="(.*)" title=".*">|){ print "$1" }' "$latest"`
-            chapter=`perl -e 'if($ARGV[0] =~ m|<a href=".*" title="(.*)">|){ print "$1" }' "$latest"`
-            date=`perl -e 'if($ARGV[0] =~ m|<span>(.{3}) (\d{2}), (\d{4})</span>|){ print "$1 $2 $3" }' "$raw"`
-        fi
-
-        echo "Chapter: $chapter"
-        echo "Domain: $domain"
-        echo "Link: $link"
-        echo "Date: $date"
-    fi
-done
