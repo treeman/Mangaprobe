@@ -20,6 +20,8 @@ while (<file>) {
     print "\n";
 }
 
+close (file);
+
 sub get_info {
     $url = $_[0];
 
