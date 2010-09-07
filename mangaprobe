@@ -2,18 +2,20 @@
 
 use LWP::Simple;
 
-@lookup = (
-    "http://mangable.com/one_piece",
-    "http://mangable.com/naruto",
-    "http://mangable.com/beelzebub",
-    "http://mangable.com/hajime_no_ippo",
-);
+$file = 'mangalist';
 
-#%my_mangas = get_info($search);
-#print_info(\%my_mangas);
+if (! -r $file) {
+    print "Argh can't read $file!\n";
+    exit;
+}
 
-foreach $manga (@lookup) {
+open (file, $file);
+
+while (<file>) {
+    chomp;
+    $manga = $_;
     %info = get_info($manga);
+
     print_info(\%info);
     print "\n";
 }
