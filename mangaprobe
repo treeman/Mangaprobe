@@ -2,7 +2,7 @@
 
 use LWP::Simple;
 
-$file = 'mangalist';
+$file = '/home/tree/projects/mangaprobe/mangalist';
 
 if (! -r $file) {
     print "Argh can't read $file!\n";
@@ -25,20 +25,26 @@ close (file);
 sub get_info {
     $url = $_[0];
 
-    $url =~ m/http:\/\/([^.]*)/;
-    $domain = $1;
-
-    if($domain == "mangable") {
+    if ($url =~ m/mangable/) {
         $site = LWP::Simple::get $url;
         return get_mangable_info($url, $site);
+    }
+    elsif ($url =~ m/mangastream/) {
+        if (!$mangastream) {
+            $mangastream = LWP::Simple::get "http://mangastream.com/manga";
+        }
+        return get_mangastream_info($url, $mangastream);
+    }
+    elsif ($url =~ m/mangareader/) {
+        $site = LWP::Simple::get $url;
+        return get_mangareader_info($url, $site);
     }
 }
 
 sub get_mangable_info {
     $url = $_[0];
-    $site = $_[1];
-
-    $manga{"site"} = $site;
+    $manga{"site"} = $site = $_[1];
+    $manga{"domain"} = "mangable";
 
     if( $site =~ m/<title>(.*?) Manga<\/title>/ ) {
         $manga{"manga"} = $1;
@@ -68,9 +74,92 @@ sub get_mangable_info {
     return %manga;
 }
 
+sub get_mangastream_info {
+    $url = $_[0];
+    $manga{"site"} = $site = $_[1];
+    $manga{"domain"} = "mangastream";
+
+    if ($url =~ m/:([^:]*?)$/) {
+        $manga{"manga"} = $1;
+    }
+
+    if ($site =~ m/
+            <th\s*style="width:80%">
+                .*?
+                $manga{"manga"}
+                .*?
+            <\/th>
+            (.*?)
+            <th\s*style="width:80%">
+        /xsi
+    ) {
+        $chapters = $manga{"chapters"} = $1;
+    }
+
+    if ($chapters =~ m/<a\s*href="(.*?)">(.*?)<\/a>/) {
+        $manga{"link"} = "http://mangastream.com$1";
+        $manga{"chapter"} = $2;
+    }
+
+    if ($chapters =~ m/<em>(.*)<\/em>/) {
+        $manga{"date"} = $1;
+    }
+
+    return %manga;
+}
+
+sub get_mangareader_info {
+    $url = $_[0];
+    $manga{"site"} = $site = $_[1];
+    $manga{"domain"} = "mangareader";
+
+    if ($site =~ m/<title>(.*?)\sManga\s-.*?<\/title>/) {
+        $manga{"manga"} = $1;
+    }
+
+    if ($site =~ m/
+            ([^<]*?
+            <\/a>
+                [^<]*?<\/td>\s*
+            <td><a\shref="javascript:void\(0\);"><\/a><\/td>\s*
+            <td\sclass="no">
+                [\s\d-:]*
+            <\/td>)
+            \s*<\/tr>\s*<\/tbody>
+            /xs
+    ) {
+        $latest = $manga{"chapters"} = $1;
+    }
+
+    if ($latest =~ m/href="(.*?)"/) {
+        $manga{"link"} = "http://www.mangareader.net/$1";
+    }
+
+    if ($latest =~ m/
+            href=".*?">
+                \s*(.*?)\sChapter   #1 match manga name
+                \s*(\d*)            #2 match chapter num
+                [^:]*:
+                \s*(.*?)            #3 match chapter title
+            <\/td>/xs
+    ) {
+        $manga{"chapter"} = "$1 $2 $3";
+    }
+
+    if ($latest =~ m/<td class="no">\s*(.*?)<\/td>/) {
+        $manga{"date"} = $1;
+    }
+
+    return %manga;
+}
+
 sub print_info {
+    #print "site: $_[0]{site}\n";
+    #print "chapters: $_[0]{chapters}\n";
+
     print "manga:   $_[0]{manga}\n";
-    print "link:    $_[0]{link}\n";
+    print "domain:  $_[0]{domain}\n";
+    #print "link:    $_[0]{link}\n";
     print "chapter: $_[0]{chapter}\n";
     print "date:    $_[0]{date}\n";
 }
