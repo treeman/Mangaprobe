@@ -14,10 +14,12 @@ open (file, $file);
 while (<file>) {
     chomp;
     $manga = $_;
-    %info = get_info($manga);
+    if ($manga) {
+        %info = get_info($manga);
 
-    print_info(\%info);
-    print "\n";
+        print_info(\%info);
+        print "\n";
+    }
 }
 
 close (file);
@@ -25,20 +27,37 @@ close (file);
 sub get_info {
     $url = $_[0];
 
+    my(%info);
+
     if ($url =~ m/mangable/) {
         $site = LWP::Simple::get $url;
-        return get_mangable_info($url, $site);
+        %info = get_mangable_info($url, $site);
     }
     elsif ($url =~ m/mangastream/) {
-        #if (!$mangastream) {
-            #$mangastream = LWP::Simple::get "http://mangastream.com/manga";
-        #}
-        #return get_mangastream_info($url, $mangastream);
+        if (!$mangastream) {
+            $mangastream = LWP::Simple::get "http://mangastream.com/manga";
+        }
+        %info = get_mangastream_info($url, $mangastream);
     }
     elsif ($url =~ m/mangareader/) {
         $site = LWP::Simple::get $url;
-        return get_mangareader_info($url, $site);
+        %info = get_mangareader_info($url, $site);
     }
+    elsif ($url =~ m/mangafox/) {
+        $site = LWP::Simple::get $url;
+        %info = get_mangafox_info($url, $site);
+    }
+
+    $info{"url"} = $url;
+
+    if (!$info{"time"}) {
+        $info{"time"} = "000000";
+    }
+    if (!$info{"datetime"}) {
+        $info{"datetime"} = $info{"date"} . $info{"time"};
+    }
+
+    return %info;
 }
 
 sub get_mangable_info {
@@ -64,7 +83,7 @@ sub get_mangable_info {
         $manga{"chapters"} = $chapters;
     }
 
-    if( $chapters =~ m/<a href="(http:\/\/.*?)" title="(.*?)">/ ) {
+    if( $chapters =~ m/<a href="(http:\/\/.*?)" title=".*?(\d*)\s*">/ ) {
         $manga{"link"} = $1;
         $manga{"chapter"} = $2;
     }
@@ -78,13 +97,10 @@ sub get_mangable_info {
         }
         $m = get_month_num($1);
         $manga{"date"} = "$3$m$d";
-        $manga{"datetime"} = "$manga{date}000000";
     }
 
     return %manga;
 }
-
-$test = "meow";
 
 sub get_mangastream_info {
     $url = $_[0];
@@ -110,9 +126,10 @@ sub get_mangastream_info {
         $chapters = $manga{"chapters"} = $1;
     }
 
-    if ($chapters =~ m/<a\s*href="(.*?)">(.*?)<\/a>/) {
+    if ($chapters =~ m/<a\s*href="(.*?)">(\d*)\s*-\s*(.*?)<\/a>/) {
         $manga{"link"} = "http://mangastream.com$1";
         $manga{"chapter"} = $2;
+        $manga{"title"} = $3;
     }
     # Sep 2nd, 2010
     if ($chapters =~ m/<em>(.*?)\s(\d+).*?(\d{4})<\/em>/) {
@@ -124,7 +141,6 @@ sub get_mangastream_info {
         }
         $m = get_month_num($1);
         $manga{"date"} = "$3$m$d";
-        $manga{"datetime"} = "$manga{date}000000";
     }
 
     return %manga;
@@ -167,7 +183,8 @@ sub get_mangareader_info {
                 \s*(.*?)            #3 match chapter title
             <\/td>/xs
     ) {
-        $manga{"chapter"} = "$1 $2";
+        $manga{"chapter"} = $2;
+        $manga{"title"} = $3;
     }
 
     if ($latest =~ m/
@@ -188,7 +205,55 @@ sub get_mangareader_info {
         $m = $2;
         $manga{"date"} = "$3$2$d";
         $manga{"time"} = "$4$5$6";
-        $manga{"datetime"} = "$manga{date}$manga{time}";
+    }
+
+    return %manga;
+}
+
+sub get_mangafox_info {
+    $url = $_[0];
+    my(%manga);
+
+    $manga{"site"} = $site = $_[1];
+    $manga{"domain"} = "mangafox";
+
+    if ($site =~ m/<title>Manga\sFox:\s(.*?)\sManga\sSeries<\/title>/) {
+        $manga{"manga"} = $1;
+    }
+
+    if ($site =~ m/
+            <tr>\s*
+                <td>\s*<a\shref="[^"]*"[^>]*>edit<\/a>\s*
+                .*?
+            \s*<\/tr>
+        /xs
+    ) {
+        $latest = $manga{"chapters"} = $&;
+    }
+
+    if ($latest =~ m/
+            <a\shref="(\/manga.*)"\sclass="chico">  #1: link
+                \s*.*?Vol\.\d*\s*
+                Ch\.(\d*):                          #2: chapter
+                \s(.*?)                             #3: title
+                \s*<\/a>
+        /xs
+    ) {
+        $manga{"link"} = "http://www.mangafox.com$1";
+        $manga{"chapter"} = $2;
+        $manga{"title"} = $3;
+    }
+
+    if ($latest =~ m/<td class="no">(.*?)<\/td>/) {
+        if ($1 =~ m/Today/) {
+            $manga{"date"} = get_todays_date();
+        }
+        elsif ($1 =~ m/Yesterday/) {
+            $manga{"date"} = get_yesterdays_date();
+        }
+        else {
+            $manga{"date"} = $1;
+        }
     }
 
     return %manga;
@@ -212,14 +277,34 @@ sub get_month_num {
     return $months{$_[0]};
 }
 
+sub get_date {
+    ($s,$min,$h,$d,$m,$y) = localtime($_[0]);
+    $y += 1900;
+    if (length($m) == 1) { $m = "0$m"; }
+    if (length($d) == 1) { $d = "0$d"; }
+    return "$y$m$d";
+}
+
+sub get_todays_date {
+    return get_date(time());
+}
+
+sub get_yesterdays_date {
+    return get_date(time() - 24 * 60 * 60);
+}
+
 sub print_info {
     #print "site: $_[0]{site}\n";
     #print "chapters: $_[0]{chapters}\n";
 
+    print "url:     $_[0]{url}\n";
     print "manga:   $_[0]{manga}\n";
     print "domain:  $_[0]{domain}\n";
-    #print "link:    $_[0]{link}\n";
+    print "link:    $_[0]{link}\n";
     print "chapter: $_[0]{chapter}\n";
+    print "title:   $_[0]{title}\n";
     print "date:    $_[0]{date}\n";
+    print "datetime:$_[0]{datetime}\n";
+    print "time:    $_[0]{time}\n";
 }
 
