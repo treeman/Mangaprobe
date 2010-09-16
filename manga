@@ -1,0 +1,3 @@
+#!/bin/sh
+
+cat /home/tree/projects/mangaprobe/manga_out

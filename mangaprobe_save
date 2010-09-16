@@ -1,0 +1,5 @@
+#!/bin/sh
+
+tmp=`mktemp` || exit 1
+mangaprobe > $tmp
+cat $tmp > '/home/tree/projects/mangaprobe/manga_out'

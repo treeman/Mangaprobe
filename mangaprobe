@@ -252,7 +252,15 @@ sub get_mangafox_info {
             $manga{"date"} = get_yesterdays_date();
         }
         else {
-            $manga{"date"} = $1;
+            $1 =~ m/(.{3}) (\d*), (\d*)/;
+            if (length ($2) == 1) {
+                $d = "0$2";
+            }
+            else {
+                $d = $2;
+            }
+            $m = get_month_num($1);
+            $manga{"date"} = "$3$m$d";
         }
     }
 
