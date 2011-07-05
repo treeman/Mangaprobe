@@ -1,5 +1,10 @@
 #!/bin/sh
 
-tmp=`mktemp` || exit 1
-mangaprobe > $tmp
-cat $tmp > '/home/tree/projects/mangaprobe/manga_out'
+for (( ; ; ))
+do
+    tmp=`mktemp`
+    /home/tree/projects/mangaprobe/mangaprobe > $tmp
+    mv $tmp /home/tree/projects/mangaprobe/manga_out
+    sleep 900
+done
+

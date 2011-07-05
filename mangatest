@@ -9,17 +9,21 @@ if (! -r $file) {
     exit;
 }
 
-open (file, $file);
+for (;;) {
+    open (file, $file);
 
-while (<file>) {
-    chomp;
-    $manga = $_;
-    if ($manga) {
-        %info = get_info($manga);
+    while (<file>) {
+        chomp;
+        $manga = $_;
+        if ($manga) {
+            %info = get_info($manga);
 
-        print_info(\%info);
-        print "\n";
+            print_info(\%info);
+            print "\n";
+        }
     }
+    my $timeout = 60;
+    $timeout -= sleep $timeout while $timeout > 0;
 }
 
 close (file);
