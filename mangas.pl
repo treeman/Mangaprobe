@@ -19,6 +19,7 @@ my $conky;          # Format for use in conky
 my $debug;          # Debug mode
 my $cached;         # List cached manga
 my $updater;        # Launch manga updater
+my $help;           # Should I comment? :)
 
 Getopt::Long::Configure ("bundling");
 GetOptions(
@@ -27,7 +28,23 @@ GetOptions(
     'debug' => \$debug,
     'c|cached' => \$cached,
     'u|updater' => \$updater,
+    'h|help' => \$help,
 );
+
+if ($help) {
+    say "Manga prober.";
+    say "-h --help";
+    say "  show this message";
+    say "-u --updater";
+    say "  start background updater";
+    say "-c --cached";
+    say "  only list cached manga info";
+    say "-s";
+    say "  short format listing";
+    say "--debug";
+    say "supersecret option :O";
+    exit;
+}
 
 my @manga = (
     "Naruto",
@@ -49,12 +66,10 @@ my @manga = (
 Manga::init();
 
 if ($updater) {
+    say "updater daemonized";
     Manga::daemonize_updater();
 }
 else {
-    if (!$cached) {
-        Manga::check_manga (@manga);
-    }
 
     my @manga_info;
     if ($cached) {
@@ -64,6 +79,7 @@ else {
         }
     }
     else {
+        Manga::check_manga (@manga);
         for (@manga) {
             my $f = Manga::get_info ($_);
             push (@manga_info, $f) if $f;
@@ -74,13 +90,13 @@ else {
         $a->{"date"} > $b->{"date"}
     }
 
-    @manga_info = sort date_cmp @manga_info;
+    my @sorted_manga = sort date_cmp @manga_info;
 
     if ($short_format) {
-        map { say Manga::short_format_manga ($_) } @manga_info;
+        map { say Manga::short_format_manga ($_) } @sorted_manga;
     }
     else {
-        map { say Manga::format_manga ($_) } @manga_info;
+        map { say Manga::format_manga ($_) } @sorted_manga;
     }
 
     if ($debug) { Manga::print_manga }

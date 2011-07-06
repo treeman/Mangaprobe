@@ -178,25 +178,14 @@ sub check_manga
     my @manga = @_;
     my @threads;
 
-    # Parallell fetch and update mangas
-    for my $manga (@manga) {
-        push (@threads, (threads->create(\&fetch_info, $manga)));
-    }
+    Site::preload ("http://mangastream.com/manga");
+    Site::preload ("http://mangable.com/manga-list/");
 
-    while (scalar @threads) {
-        my @not_done;
-        for my $thr (@threads) {
-            if ($thr->is_joinable) {
-                my $info = $thr->join();
-                if (is_useful ($info)) {
-                    add_info ($info);
-                }
-            }
-            else {
-                push (@not_done, $thr);
-            }
+    for my $manga (@manga) {
+        my $info = fetch_info ($manga);
+        if (is_useful ($info)) {
+            add_info ($info);
         }
-        @threads = @not_done;
     }
 
     $lock->down();
@@ -219,26 +208,12 @@ sub fetch_info
 
     my $info = {};
 
-    # Parallell manga fetching
-    # This way we don't need parallell pre download sites
-    my @threads;
+    my @funcs = (\&get_mangastream_info, \&get_mangable_info);
 
-    push (@threads, (threads->create(\&get_mangastream_info, $manga)));
-    push (@threads, (threads->create(\&get_mangable_info, $manga)));
-
-    while (scalar @threads) {
-        my @not_done;
-        for my $thr (@threads) {
-            if ($thr->is_joinable) {
-                my $new = $thr->join();
-                $new->{"date"} = time;
-                update_info ($info, $new);
-            }
-            else {
-                push (@not_done, $thr);
-            }
-        }
-        @threads = @not_done;
+    for my $f (@funcs) {
+        my $new = &$f($manga);
+        $new->{"date"} = time;
+        update_info ($info, $new);
     }
 
     return $info;
