@@ -87,7 +87,7 @@ else {
         }
     }
 
-    my @sorted_manga = reverse (sort { $a->{"date"} <=> $b->{"date"} } @manga_info);
+    my @sorted_manga = sort { $b->{"date"} <=> $a->{"date"} } @manga_info;
 
     if ($short_format) {
         map { say Manga::short_format_manga ($_) } @sorted_manga;
