@@ -61,6 +61,7 @@ my @manga = (
     "Berserk",
     "Kekkaishi",
     "The Breaker",
+    "Fairy Tail",
 );
 
 Manga::init();
@@ -86,11 +87,7 @@ else {
         }
     }
 
-    sub date_cmp {
-        $a->{"date"} > $b->{"date"}
-    }
-
-    my @sorted_manga = sort date_cmp @manga_info;
+    my @sorted_manga = reverse (sort { $a->{"date"} <=> $b->{"date"} } @manga_info);
 
     if ($short_format) {
         map { say Manga::short_format_manga ($_) } @sorted_manga;
