@@ -402,9 +402,11 @@ sub get_mangable_info
     my ($manga) = @_;
     my $manga_url = convert_url ($manga);
 
+    my $info = {};
+
     my $site = Site::get "http://mangable.com/manga-list/", $cache_time;
 
-    my $info = {};
+    return $info if (!$site);
 
     if ($site =~ /<a\s
                     href="

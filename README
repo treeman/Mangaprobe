@@ -1,0 +1,4 @@
+Bugs:
+
+*Excessive memory usage as we store the whole sites in memory when we want to cache it. Use cache files instead!!
+
