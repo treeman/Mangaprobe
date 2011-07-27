@@ -134,6 +134,7 @@ sub format_date
     my @parts = localtime($time);
     my ($y, $m, $d) = @parts[5, 4, 3];
     $y += 1900;
+    $m += 1;
 
     return "$d " . get_month_name ($m) . " $y";
 }

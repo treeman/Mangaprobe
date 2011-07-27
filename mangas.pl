@@ -54,14 +54,14 @@ my @manga = (
     "Bleach",
     "Hajime no Ippo",
     "Gamaran",
-    "Detective Conan",
-    "Vinland Saga",
-    "Futari Ecchi",
+    "Fairy Tail",
 
     "Berserk",
     "Kekkaishi",
     "The Breaker",
-    "Fairy Tail",
+    "Detective Conan",
+    "Vinland Saga",
+    "Futari Ecchi",
 );
 
 Manga::init();
