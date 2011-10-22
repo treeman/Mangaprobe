@@ -1,6 +1,9 @@
 #!/usr/bin/perl -w
 
 use Modern::Perl;
+use Mojo::DOM;
+use Mojo::UserAgent;
+
 use LWP::Simple;
 
 use threads;
@@ -261,15 +264,6 @@ sub add_info
 
     $lock->down();
 
-    # If we already have a manga checked in and we now have a newer
-    if (exists ($manga_info->{$manga}) &&
-        is_useful ($manga_info->{$manga}) &&
-        is_useful ($info) &&
-        is_newer ($manga_info->{$manga}, $info))
-    {
-        say "Omg $manga is newer!";
-    }
-
     # If we need to update
     if (!exists ($manga_info->{$manga}) ||
         is_better ($manga_info->{$manga}, $info))
@@ -371,30 +365,36 @@ sub get_mangastream_info
     my ($manga) = @_;
 
     my $site = Site::get "http://mangastream.com/manga", $cache_time;
+    my $dom = Mojo::DOM->new($site);
 
     my $info = {};
 
     my $manga_url = convert_url ($manga);
-    if ($site =~ /<a\shref="
-                    (\/read\/$manga_url\/[^"]+) # (1) Link
-                  ">
-                    (\d+)                       # (2) Chapter
-                    \s-\s
-                    (.+?)                       # (3) Chapter title
-                  <\/a>
-                 /xsi)
-    {
-        my $link = "http://mangastream.com$1";
-        my $chapter = $2;
-        my $title = $3;
 
+    for my $e ($dom->find("a[href^=\"\/read\/$manga_url\"]")->each)
+    {
+        my $link = "http://mangastream.com" . $e->{href};
+        my $title = $e->text;
+
+        $title =~ /(\d*)
+                \s+-\s+
+                (.+)
+                /xsi;
+
+        my $ch = $1;
+        my $ch_title = $2;
+
+        $$info{"chapter"} = $ch;
+        $$info{"title"} = $ch_title;
         $$info{"link"} = $link;
+
         $$info{"manga"} = $manga;
-        $$info{"chapter"} = $chapter;
-        $$info{"title"} = $title;
+        $$info{"date"} = "";
+
+        return $info;
     }
 
-    return $info;
+    return undef;
 }
 
 sub get_mangable_info
@@ -404,32 +404,38 @@ sub get_mangable_info
 
     my $info = {};
 
-    my $site = Site::get "http://mangable.com/manga-list/", $cache_time;
+    my $site = Site::get "http://mangable.com/$manga_url", $cache_time;
+    my $dom = Mojo::DOM->new($site);
 
-    return $info if (!$site);
-
-    if ($site =~ /<a\s
-                    href="
-                       ([^"]+\/$manga_url\/[^"]+) # (1) Link
-                    "\s+
-                    title="
-                       .*?
-                       \s
-                       (\d+)                    # (2) Chapter
-                    "\s*
-                  >
-                 /xsi)
+    for my $e ($dom->find("a[href*=\"$manga_url\"]")->each)
     {
-        my $link = $1;
-        my $chapter = $2;
+        my $link = $e->{href};
+        my $ch_info = $e->at('p')->at('b')->text;
 
+        $ch_info =~ /(\d+)/s;
+        my $ch = $1;
+
+        my $ch_title = $e->at('p')->at('span');
+        if ($ch_title) {
+            $ch_title = $ch_title->text;
+            $ch_title =~ /\s*:\s*(.*)\s*/;
+            $ch_title = $1;
+        }
+        else {
+            $ch_title = "";
+        }
+
+        $$info{"chapter"} = $ch;
+        $$info{"title"} = $ch_title;
         $$info{"link"} = $link;
+
         $$info{"manga"} = $manga;
-        $$info{"chapter"} = $chapter;
-        $$info{"title"} = "";
+        $$info{"date"} = "";
+
+        return $info;
     }
 
-    return $info;
+    return undef;
 }
 
 sub get_month_num {
@@ -457,10 +463,6 @@ sub print_manga
     say "----------------------------------------------------------------";
     say $info{"manga"}, " ", $info{"chapter"}, " - ", $info{"title"};
     say $info{"link"}, " ", $info{"date"};
-    #say $info{"manga"};
-    #say $info{"chapter"};
-    #say $info{"title"};
-    #say $info{"date"};
 }
 
 sub print_stored_manga

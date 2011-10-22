@@ -47,21 +47,16 @@ if ($help) {
 }
 
 my @manga = (
-    "Naruto",
-    "One Piece",
-    "Historys Strongest Disciple Kenichi",
     "Beelzebub",
     "Bleach",
-    "Hajime no Ippo",
-    "Gamaran",
     "Fairy Tail",
-
-    "Berserk",
-    "Kekkaishi",
-    "The Breaker",
-    "Detective Conan",
-    "Vinland Saga",
     "Futari Ecchi",
+    "Gamaran",
+    "Hajime no Ippo",
+    "Historys Strongest Disciple Kenichi",
+    "Naruto",
+    "Noblesse",
+    "One Piece",
 );
 
 Manga::init();
