@@ -1,6 +1,10 @@
 Bugs:
 
-*Excessive memory usage as we store the whole sites in memory when we want to cache it. Use cache files instead!!
-*mangable's manga list will only show popular, need to tweak the search a bit. (Gamaran won't show for example)
-*all mangas aren't found - maybe add another manga site? (mangareader)
+Need more sites:
+    mangareader
+    imperialscans.com
+
+Option to make a daemon that updates in an intervall and use chached for access?
+
+Need to have a config file in home directory or something with mangas to follow.
 

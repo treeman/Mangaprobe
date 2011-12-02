@@ -57,6 +57,9 @@ my @manga = (
     "Naruto",
     "Noblesse",
     "One Piece",
+    "The Breaker New Waves",
+    "Sun-Ken Rock",
+    "Bakuman",
 );
 
 Manga::init();
