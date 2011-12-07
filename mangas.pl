@@ -19,6 +19,7 @@ my $conky;          # Format for use in conky
 my $debug;          # Debug mode
 my $cached;         # List cached manga
 my $updater;        # Launch manga updater
+my $update;         # Single update
 my $help;           # Should I comment? :)
 
 Getopt::Long::Configure ("bundling");
@@ -27,7 +28,8 @@ GetOptions(
     'conky' => \$conky,
     'debug' => \$debug,
     'c|cached' => \$cached,
-    'u|updater' => \$updater,
+    'updater' => \$updater,
+    'u|update' => \$update,
     'h|help' => \$help,
 );
 
@@ -35,8 +37,10 @@ if ($help) {
     say "Manga prober.";
     say "-h --help";
     say "  show this message";
-    say "-u --updater";
+    say "--updater";
     say "  start background updater";
+    say "-u --update";
+    say "  update manga cache";
     say "-c --cached";
     say "  only list cached manga info";
     say "-s";
@@ -47,6 +51,7 @@ if ($help) {
 }
 
 my @manga = (
+    "Bakuman",
     "Beelzebub",
     "Bleach",
     "Fairy Tail",
@@ -57,9 +62,9 @@ my @manga = (
     "Naruto",
     "Noblesse",
     "One Piece",
-    "The Breaker New Waves",
     "Sun-Ken Rock",
-    "Bakuman",
+    "The Breaker New Waves",
+    "Vinland Saga",
 );
 
 Manga::init();
@@ -68,8 +73,11 @@ if ($updater) {
     say "updater daemonized";
     Manga::daemonize_updater();
 }
+elsif ($update) {
+    Manga::check_manga (@manga);
+    Manga::store_to_disk();
+}
 else {
-
     my @manga_info;
     if ($cached) {
         for (@manga) {
@@ -95,6 +103,8 @@ else {
     }
 
     if ($debug) { Manga::print_manga }
+
+    Manga::store_to_disk();
 
     Manga::close();
 }
