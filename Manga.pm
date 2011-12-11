@@ -19,63 +19,6 @@ use POSIX 'setsid';
 use Util::Site;
 use Util::StoreHash;
 
-# Actually useful functions
-
-# Get formated manga info
-sub get_manga;
-sub get_short_manga;
-
-# Load state and start up manga_updater
-sub init;
-sub start_updater;
-sub daemonize_updater;
-
-# Save state
-sub close;
-
-# Save latest state, so we can notify of updates
-sub load_from_disk;
-sub store_to_disk;
-
-# Retrieve manga info
-# If cached return that else fetch new info
-sub get_info;
-# Simply return the cached infos
-sub get_cached_info;
-# Recheck manga
-sub check_manga;
-# Recheck all manga we have a record of
-sub recheck_known_manga;
-# Get hash with info about a specific manga
-sub fetch_info;
-# If we have relevant info about a manga
-sub has_manga;
-# Periodically update all tracked manga, launch in separate thread
-sub manga_updater;
-
-# We have some info about a manga, let's try to add it
-sub add_info;
-sub update_info;
-
-sub is_useful;
-
-# Compare two mangas
-sub is_newer;
-sub is_better;
-
-sub format_manga;
-sub short_format_manga;
-sub convert_url;
-
-# Our supported sites
-sub get_mangastream_info;
-sub get_mangable_info;
-
-sub get_month_num;
-
-# Debug
-sub print_manga;
-
 # Info about all manga we're tracking
 my $manga_info :shared = &share({});
 
@@ -156,12 +99,12 @@ sub get_info
     }
     else {
         my $info = fetch_info ($manga);
-        if (is_useful) {
+        if (is_useful ($info)) {
             add_info ($info);
             return $info;
         }
         else {
-            return undef
+            return undef;
         }
     }
 }
@@ -183,6 +126,7 @@ sub check_manga
 
     Site::preload ("http://mangastream.com/manga");
     Site::preload ("http://mangable.com/manga-list/");
+    Site::preload ("http://www.mangareader.net/");
 
     for my $manga (@manga) {
         my $info = fetch_info ($manga);
@@ -211,7 +155,7 @@ sub fetch_info
 
     my $info = {};
 
-    my @funcs = (\&get_mangastream_info, \&get_mangable_info);
+    my @funcs = (\&get_mangastream_info, \&get_mangable_info, \&get_mangareader_info);
 
     for my $f (@funcs) {
         my $new = &$f($manga);
@@ -354,10 +298,48 @@ sub short_format_manga
 
 sub convert_url
 {
-    my ($url) = @_;
+    my ($url, $repl) = @_;
+    $repl = '_' unless defined $repl;
+
     $url = lc ($url);
-    $url =~ s/\s/_/g;
+    $url =~ s/\s/$repl/g;
     return $url;
+}
+
+# Will only check latest manga updates
+sub get_mangareader_info
+{
+    my ($manga) = @_;
+
+    my $site = Site::get "http://www.mangareader.net/", $cache_time;
+    my $dom = Mojo::DOM->new($site);
+
+    my $info = {};
+
+    my $manga_url = convert_url ($manga, '-');
+
+    for my $e ($dom->find('a[href^="/'.$manga_url.'"]')->each)
+    {
+        my $link = "http://www.mangareader.net" . $e->{href};
+
+        if ($e->{href} =~ /(\d+)$/) {
+
+            my $ch = $1;
+
+            # Find newest if many links
+            if (!defined ($$info{"chapter"}) || $ch > $$info{"chapter"}) {
+
+                $$info{"chapter"} = $ch;
+                $$info{"title"} = "";
+                $$info{"link"} = $link;
+
+                $$info{"manga"} = $manga;
+                $$info{"date"} = "";
+            }
+        }
+    }
+
+    return $info;
 }
 
 sub get_mangastream_info
