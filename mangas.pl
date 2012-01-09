@@ -62,6 +62,7 @@ my @manga = (
     "Naruto",
     "Noblesse",
     "One Piece",
+    "Special Martial Arts Extreme Hell Private High School",
     "Sun-Ken Rock",
     "The Breaker New Waves",
     "Vinland Saga",
