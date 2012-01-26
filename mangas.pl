@@ -50,6 +50,15 @@ if ($help) {
     exit;
 }
 
+# To read/checkup list
+#Air Gear
+#Kekkaishi
+#Veritas
+#Full metal alchemist
+#Berserk
+#Kimi no Iru Machi
+
+
 my @manga = (
     "Bakuman",
     "Beelzebub",
@@ -65,7 +74,10 @@ my @manga = (
     "Special Martial Arts Extreme Hell Private High School",
     "Sun-Ken Rock",
     "The Breaker New Waves",
+    "The God of High School",
+    "Though",
     "Vinland Saga",
+    "Zen Martial Arts Academy",
 );
 
 Manga::init();

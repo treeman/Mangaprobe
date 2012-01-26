@@ -1,10 +1,9 @@
-Bugs:
+# Bugs
 
-Need more sites:
-    mangareader
-    imperialscans.com
+* Option to make a daemon that updates in an intervall and use chached for access?
 
-Option to make a daemon that updates in an intervall and use chached for access?
+# Todo
 
-Need to have a config file in home directory or something with mangas to follow.
+* Manga list in home dir for which to follow
+* Options to only checkup on specific manga
 
