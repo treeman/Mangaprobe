@@ -60,14 +60,17 @@ if ($help) {
 
 
 my @manga = (
+    "Aiki",
     "Bakuman",
     "Beelzebub",
     "Bleach",
     "Fairy Tail",
     "Futari Ecchi",
     "Gamaran",
+    "Gamble Fish",
     "Hajime no Ippo",
     "Historys Strongest Disciple Kenichi",
+    "Karate Shoukoushi Kohinata Minoru",
     "Naruto",
     "Noblesse",
     "One Piece",
@@ -75,7 +78,8 @@ my @manga = (
     "Sun-Ken Rock",
     "The Breaker New Waves",
     "The God of High School",
-    "Though",
+    "Tough",
+    "Tower of God",
     "Vinland Saga",
     "Zen Martial Arts Academy",
 );
